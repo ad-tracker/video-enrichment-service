@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: video-enrichment-postgres
+    environment:
+      POSTGRES_DB: adtracker
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - video-enrichment-network
+
+  video-enrichment-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: video-enrichment-service
+    ports:
+      - "8080:8080"
+    environment:
+      # Database Configuration
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: adtracker
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+
+      # Application Configuration
+      SPRING_PROFILES_ACTIVE: dev
+      SERVER_PORT: 8080
+
+      # YouTube API Configuration
+      YOUTUBE_API_KEY: ${YOUTUBE_API_KEY:-}
+
+      # JVM Options
+      JAVA_OPTS: >-
+        -XX:+UseContainerSupport
+        -XX:MaxRAMPercentage=75.0
+        -XX:InitialRAMPercentage=50.0
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - video-enrichment-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  video-enrichment-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local

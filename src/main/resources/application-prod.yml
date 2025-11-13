@@ -1,0 +1,45 @@
+spring:
+  datasource:
+    hikari:
+      schema: video_enrichment
+      maximum-pool-size: 20
+      minimum-idle: 10
+      leak-detection-threshold: 60000
+
+  jpa:
+    show-sql: false
+    properties:
+      hibernate:
+        default_schema: video_enrichment
+        format_sql: false
+        generate_statistics: false
+
+server:
+  error:
+    include-message: never
+    include-binding-errors: never
+    include-stacktrace: never
+    include-exception: false
+
+management:
+  endpoint:
+    health:
+      show-details: never
+
+logging:
+  level:
+    root: WARN
+    com.adtracker.videoenrichment: INFO
+    org.springframework.web: WARN
+    org.hibernate.SQL: WARN
+    org.hibernate.type.descriptor.sql.BasicBinder: WARN
+  file:
+    name: /var/log/video-enrichment-service/application.log
+    max-size: 100MB
+    max-history: 30
+    total-size-cap: 3GB
+
+video:
+  enrichment:
+    processing:
+      batch-size: 20
